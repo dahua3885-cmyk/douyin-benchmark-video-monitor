@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "project": {
+    "id": "my-benchmark-project",
+    "name": "我的对标视频监控",
+    "platform": "抖音",
+    "timezone": "Asia/Shanghai",
+    "output_root": "work/runs"
+  },
+  "schedule": {
+    "daily_time": "20:00"
+  },
+  "benchmark_accounts": [
+    {
+      "name": "示例账号",
+      "url": "https://www.douyin.com/user/EXAMPLE_ACCOUNT_ID"
+    }
+  ],
+  "keyword_groups": [
+    {
+      "name": "示例关键词组",
+      "keywords": ["示例关键词"]
+    }
+  ],
+  "collection": {
+    "account_post_limit": 60,
+    "account_window_days": 30,
+    "keyword_window_days": 7,
+    "account_concurrency": 1,
+    "keyword_concurrency": 2,
+    "keyword_concurrency_max": 3,
+    "keyword_risk_fallback_concurrency": 1,
+    "keyword_candidate_limit": 10,
+    "keyword_result_limit": 5,
+    "account_retry_attempts": 3,
+    "account_retry_backoff_seconds": 10,
+    "browser": {
+      "provider": "codex_in_app_browser",
+      "reuse_session": true,
+      "allow_standalone_browser": false,
+      "expected_account_name": "",
+      "expected_douyin_id": ""
+    }
+  },
+  "ranking": {
+    "absolute_minimum_likes": 100,
+    "follower_tiers": [
+      {"max_followers": 2000, "label": "0-2千粉", "minimum_likes": 100},
+      {"max_followers": 10000, "label": "2千-1万粉", "minimum_likes": 200},
+      {"max_followers": 50000, "label": "1万-5万粉", "minimum_likes": 500},
+      {"max_followers": 200000, "label": "5万-20万粉", "minimum_likes": 1000},
+      {"max_followers": 500000, "label": "20万-50万粉", "minimum_likes": 2500},
+      {"max_followers": 1000000, "label": "50万-100万粉", "minimum_likes": 5000},
+      {"max_followers": null, "label": "100万粉以上", "minimum_likes": 10000}
+    ],
+    "dynamic_account_baseline": {
+      "enabled": true,
+      "percentile": 70,
+      "minimum_history_items": 20,
+      "target_history_items": 30
+    },
+    "weighted_interaction": {"like": 1, "comment": 3, "collect": 6, "share": 4},
+    "score_weights": {"traffic": 40, "collect": 30, "share": 12, "comment": 8, "low_follower_breakout": 10},
+    "sort": ["likes_desc", "score_desc"]
+  },
+  "enrichment": {
+    "ocr_enabled": true,
+    "transcription_enabled": true,
+    "whisper_model": "base",
+    "device": "auto",
+    "compute_type": "auto",
+    "max_video_minutes": 30
+  },
+  "feishu": {
+    "enabled": false,
+    "identity": "bot",
+    "base_url": "",
+    "base_token": "",
+    "tables": {
+      "videos": {"name": "视频数据", "table_id": ""},
+      "snapshots": {"name": "每日互动趋势", "table_id": ""},
+      "runs": {"name": "运行日志", "table_id": ""}
+    }
+  }
+}

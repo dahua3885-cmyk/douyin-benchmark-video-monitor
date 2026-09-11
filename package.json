@@ -1,0 +1,14 @@
+{
+  "name": "douyin-benchmark-video-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "validate:example": "node scripts/validate-config.mjs config/project.example.json"
+  },
+  "license": "Apache-2.0"
+}

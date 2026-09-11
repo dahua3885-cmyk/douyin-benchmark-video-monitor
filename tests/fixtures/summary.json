@@ -1,0 +1,15 @@
+{
+  "status": "complete",
+  "captured_at": "2026-01-31T04:00:00.000Z",
+  "browser": {"provider": "codex_in_app_browser", "login_verified": true},
+  "phases": ["accounts", "keywords"],
+  "account_max_observed_concurrency": 1,
+  "keyword_concurrency": {"initial": 2, "max_observed": 2, "risk_triggered": false, "after_risk": null},
+  "accounts": [
+    {"account": "测试账号", "sequence": 1, "status": "success", "examined_count": 2, "error": ""}
+  ],
+  "keywords": [
+    {"keyword": "测试关键词", "status": "success_with_results", "examined_count": 5, "error": ""}
+  ],
+  "candidate_count": 5
+}

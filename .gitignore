@@ -1,0 +1,28 @@
+# Private configuration and credentials
+config/project.local.json
+.env
+.env.*
+!.env.example
+
+# Browser state and collected data
+browser-state/
+work/
+output/
+outputs/
+state/
+*.lock
+
+# Runtime caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+
+# Feishu payload scratch files
+.feishu-*.json
+
+# Editors and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

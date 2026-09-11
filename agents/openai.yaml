@@ -1,0 +1,6 @@
+interface:
+  display_name: "抖音对标视频自动采集"
+  short_description: "在Codex内置浏览器采集对标账号与关键词视频并写入飞书"
+  default_prompt: "使用 $douyin-benchmark-video-monitor 初始化或运行我的抖音对标视频每日采集。"
+policy:
+  allow_implicit_invocation: true
