@@ -1,6 +1,6 @@
 # Douyin Benchmark Video Monitor
 
-A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, and optionally writing deduplicated results to the user's own Feishu Base.
+A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, and optionally writing deduplicated results to the user's own Feishu Base. Version 0.2.0 automatically creates and refreshes the four required Feishu views.
 
 The repository contains no production account list, keyword strategy, browser session, Feishu resource identifier, credential, or collected platform data.
 
@@ -13,6 +13,7 @@ The repository contains no production account list, keyword strategy, browser se
 5. Videos are deduplicated by platform and video ID; all matched keywords are preserved on one row.
 6. Account videos use a 30-day window. Keyword videos use a 7-day window.
 7. Results are written to local artifacts and, when configured, to Feishu Base using bot identity.
+8. The single `视频数据` table exposes `最近7天榜单`, `对标账号视频`, `关键词爆款`, and `历史记录` views.
 
 ## Install
 
@@ -46,13 +47,22 @@ Invoke the Skill in Codex:
 使用 $douyin-benchmark-video-monitor 初始化我的对标视频监控。
 ```
 
-Codex will guide the one-time Douyin login in its in-app browser and the user's own Feishu setup. Feishu application scopes can be requested together, but the target Base may still require one explicit resource-access grant. Unattended runs use bot identity and do not repeatedly scan a QR code.
+Codex will show the Douyin login in a visible in-app browser tab. For Feishu, every verification URL is shown both as a clickable link and an opened PNG QR code. Feishu application scopes can be requested together, but the target Base may still require one explicit resource-access grant. Douyin and Feishu use separate QR codes. Unattended runs use the saved Douyin session and Feishu bot identity, so daily collection does not repeatedly ask for a scan.
+
+After the Base tables and fields exist, preview and create the required views:
+
+```powershell
+node scripts\ensure-feishu-views.mjs --config=config\project.local.json --dry-run
+node scripts\ensure-feishu-views.mjs --config=config\project.local.json
+```
+
+The write pipeline also runs this view maintenance automatically before every Feishu write, refreshing the rolling 7-day and 30-day boundaries.
 
 ## Validate And Test
 
 ```powershell
 node scripts\validate-config.mjs config\project.example.json
-node --test tests\ranking.test.mjs
+npm test
 ```
 
 Run the included local fixture through the pipeline:

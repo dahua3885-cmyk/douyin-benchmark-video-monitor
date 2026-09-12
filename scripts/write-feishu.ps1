@@ -71,6 +71,9 @@ $Updated = 0
 
 Push-Location $RunDir
 try {
+  & node (Join-Path $PSScriptRoot "ensure-feishu-views.mjs") "--config=$ConfigPath"
+  if ($LASTEXITCODE -ne 0) { throw "Feishu view setup failed with exit code $LASTEXITCODE" }
+
   foreach ($Video in @($Videos)) {
     $Action = Upsert-Verified $VideosTable "唯一键" ([string]$Video.'唯一键') (Convert-MultiSelectFields $Video)
     if ($Action -eq "created") { $Created += 1 } else { $Updated += 1 }

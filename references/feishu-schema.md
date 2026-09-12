@@ -36,7 +36,16 @@ Use one record per `平台 + 视频ID`.
 | 在榜状态 | Text | New/current/history status |
 | 数据备注 | Text | Partial failures and missing enrichment |
 
-Recommended views are `对标账号｜近30天`, `关键词爆款｜近7天`, `综合爆款榜`, and `历史记录`.
+The Skill must create and maintain these four grid views in this one table:
+
+| View | Filter | Sort |
+|---|---|---|
+| `最近7天榜单` | `发布时间` is within the rolling last 7 days; includes both benchmark-account and keyword sources | `点赞` descending, then `评分` descending |
+| `对标账号视频` | `来源类型` contains `对标账号`; `发布时间` is within the rolling last 30 days | `点赞` descending, then `评分` descending |
+| `关键词爆款` | `来源类型` contains `关键词`; `发布时间` is within the rolling last 7 days | `点赞` descending, then `评分` descending |
+| `历史记录` | No filter; retains all historical rows | `点赞` descending, then `评分` descending |
+
+The first view intentionally includes 7-day benchmark-account rows even though the dedicated account view covers 30 days. One video matched by multiple keywords or by both source types remains one row because the table business key is `平台 + 视频ID`.
 
 ## 每日互动趋势
 

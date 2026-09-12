@@ -2,7 +2,7 @@
 name: douyin-benchmark-video-monitor
 description: Configure and run a private daily Douyin benchmark-video monitor from user-supplied account URLs and keywords. Use Codex's in-app browser to collect account videos sequentially, search keywords with bounded concurrency and risk fallback, rank 30-day account videos and 7-day keyword videos, and optionally write deduplicated results to the user's own Feishu Base.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Douyin Benchmark Video Monitor
@@ -12,8 +12,8 @@ Keep each user's accounts, keywords, browser session, Feishu identifiers, creden
 ## Start Here
 
 1. If `config/project.local.json` is missing, read [references/setup.md](references/setup.md), help the user create it from `config/project.example.json`, and validate it with `node scripts/validate-config.mjs`.
-2. Bind a Douyin tab in the Codex in-app browser and let the user scan the Douyin QR code once. Reuse that in-app browser session. Never start Chrome, Edge, Playwright persistent profiles, or a second browser identity.
-3. If Feishu output or commands are enabled, read [references/feishu-setup.md](references/feishu-setup.md). Runtime writes and replies use bot identity. Do not ask for a notification recipient or group.
+2. Create or select the Douyin tab in Codex's in-app browser with `visible: true` for login. Navigate to the login QR screen and keep it visible until the user scans it. Confirm the logged-in identity, then reuse that in-app browser session. Never start Chrome, Edge, Playwright persistent profiles, or a second browser identity.
+3. If Feishu output or commands are enabled, read [references/feishu-setup.md](references/feishu-setup.md). Every Feishu verification URL must be shown unchanged as a clickable link and as a generated PNG QR code opened in Codex. Runtime writes and replies use bot identity. Do not ask for a notification recipient or group.
 4. Before collection, read [references/collection-contract.md](references/collection-contract.md). Its artifact schema and sequencing rules are mandatory.
 
 ## Collection Order
@@ -52,6 +52,15 @@ powershell -ExecutionPolicy Bypass -File scripts/run-monitor.ps1 `
 
 Use `-LocalOnly` for validation and ranking without a Feishu write. Each run writes an isolated directory under the configured local output root, including account, keyword, combined, snapshot, state, summary, and run-log artifacts.
 
+Before the first Feishu write, preview and create the four required `视频数据` views with `scripts/ensure-feishu-views.mjs`. `write-feishu.ps1` runs the same idempotent view maintenance automatically before every write so rolling date filters remain current:
+
+- `最近7天榜单`: all qualifying benchmark-account and keyword videos published in the last 7 days.
+- `对标账号视频`: benchmark-account videos published in the last 30 days.
+- `关键词爆款`: keyword videos published in the last 7 days.
+- `历史记录`: all retained records without a date filter.
+
+These are four views of the same deduplicated `视频数据` table, not four separate tables. Never delete old rows merely because they leave a rolling view.
+
 ## Feishu Commands
 
 When the user asks to listen for Feishu commands, use `lark-cli event consume im.message.receive_v1 --as bot` and follow the installed `lark-event` instructions. Accept only these exact text commands:
@@ -66,6 +75,6 @@ Reply to the originating message or chat. Do not store a separate notification r
 ## Safety And Completion
 
 - Never commit `config/project.local.json`, `.env`, browser state, run output, caches, tokens, raw platform responses, or local absolute paths.
-- Use Feishu bot identity for unattended runs. User OAuth, when required during setup, should request all necessary scopes in one consent flow; Base resource access may still require one explicit collaborator grant.
+- Use Feishu bot identity for unattended runs. User OAuth, when required during setup, should request all necessary scopes in one Feishu consent flow; Base resource access may still require one explicit collaborator grant. Douyin and Feishu are separate services and cannot share one QR code.
 - Upsert Feishu video records by the real business key. Check for an existing record and update by its returned `record_id`; do not assume a command automatically deduplicates by field.
 - Do not claim a run succeeded unless collection validation, ranking, enabled enrichment, Feishu write, and write verification all pass. Report partial results and exact failed sources otherwise.

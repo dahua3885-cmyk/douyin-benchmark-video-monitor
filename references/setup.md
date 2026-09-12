@@ -16,7 +16,7 @@ node scripts/validate-config.mjs config/project.local.json
 
 ## Douyin login
 
-Open Douyin in the Codex in-app browser, let the user scan the QR code, and confirm the visible account identity if the local configuration specifies one. Reuse this browser session for later runs. Douyin authentication is separate from Feishu authorization and cannot be combined with it.
+Create or select the Douyin tab in the Codex in-app browser with `visible: true`, navigate to the login QR screen, keep the QR visible while the user scans it, and confirm the visible account identity if the local configuration specifies one. Reuse this browser session for later runs. Do not merely print a login URL in the terminal. Douyin authentication is separate from Feishu authorization and cannot be combined with it.
 
 Keep the browser hidden during unattended work. Make it visible only for login, QR scanning, CAPTCHA, explicit authorization, or another interaction that requires the user.
 
