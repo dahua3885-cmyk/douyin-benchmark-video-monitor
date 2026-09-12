@@ -1,6 +1,6 @@
 # Douyin Benchmark Video Monitor
 
-A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, and optionally writing deduplicated results to the user's own Feishu Base. Version 0.2.0 automatically creates and refreshes the four required Feishu views.
+A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, transcribing ranked videos, and writing deduplicated results to the user's own Feishu Base. Version 0.3.0 gives each Feishu view its own field order and automatically installs the local enrichment runtime.
 
 The repository contains no production account list, keyword strategy, browser session, Feishu resource identifier, credential, or collected platform data.
 
@@ -24,13 +24,13 @@ git clone https://github.com/dahua3885-cmyk/douyin-benchmark-video-monitor.git `
   "$env:USERPROFILE\.codex\skills\douyin-benchmark-video-monitor"
 ```
 
-Install runtime dependencies:
+The Skill automatically installs its private Python runtime on the first enriched run. To prepare it immediately:
 
 ```powershell
-python -m pip install -r requirements.txt
+powershell -ExecutionPolicy Bypass -File scripts\install-dependencies.ps1
 ```
 
-The workflow also requires Node.js, PowerShell, FFmpeg for transcription, `lark-cli` for Feishu, and a Codex environment with in-app browser control.
+This creates `.venv`, installs OCR, yt-dlp and faster-whisper, resolves a private FFmpeg binary through `imageio-ffmpeg`, and downloads the configured Whisper model. Large third-party binaries and model weights are not committed to GitHub; they are downloaded automatically because they are platform-specific and substantially larger than the Skill. The workflow also requires Node.js, PowerShell, Python, `lark-cli` for Feishu, and a Codex environment with in-app browser control.
 
 ## Configure
 
@@ -56,7 +56,11 @@ node scripts\ensure-feishu-views.mjs --config=config\project.local.json --dry-ru
 node scripts\ensure-feishu-views.mjs --config=config\project.local.json
 ```
 
-The write pipeline also runs this view maintenance automatically before every Feishu write, refreshing the rolling 7-day and 30-day boundaries.
+The write pipeline also runs this view maintenance automatically before every Feishu write, refreshing the rolling 7-day and 30-day boundaries and applying the view-specific field order documented in `references/feishu-schema.md`.
+
+## Transcription behavior
+
+Collection should capture a fresh playable `media_url` when Douyin exposes one. When that field is unavailable or the signed URL expires, the transcription step automatically tries the public `视频链接` through yt-dlp. Empty transcripts are never counted as success: `transcription-summary.json` records whether the video source was missing, both download methods failed, audio extraction failed, or no speech was detected.
 
 ## Validate And Test
 

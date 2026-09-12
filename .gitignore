@@ -17,6 +17,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 node_modules/
+.venv/
 
 # Feishu payload scratch files
 .feishu-*.json

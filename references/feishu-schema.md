@@ -13,6 +13,9 @@ Use one record per `平台 + 视频ID`.
 | 账号昵称 | Text | Author nickname |
 | 账号主页 | URL | Author profile |
 | 粉丝数 | Number | Required for eligibility |
+| 来源 | Text | User-facing merged source labels: `对标账号`, `关键词` |
+| 内容方向 | Text | Concise semantic topic; falls back to keyword-group name or `待分类` |
+| 关键词 | Text | Keyword Top-5 matches merged with `；` |
 | 来源类型 | Multi-select | `对标账号`, `关键词` |
 | 命中关键词 | Multi-select | All matching keywords; never duplicate the row |
 | 入榜关键词 | Multi-select | Keywords for which the video is in that keyword's Top 5 |
@@ -38,12 +41,14 @@ Use one record per `平台 + 视频ID`.
 
 The Skill must create and maintain these four grid views in this one table:
 
-| View | Filter | Sort |
+| View | Filter | Visible fields in order |
 |---|---|---|
-| `最近7天榜单` | `发布时间` is within the rolling last 7 days; includes both benchmark-account and keyword sources | `点赞` descending, then `评分` descending |
-| `对标账号视频` | `来源类型` contains `对标账号`; `发布时间` is within the rolling last 30 days | `点赞` descending, then `评分` descending |
-| `关键词爆款` | `来源类型` contains `关键词`; `发布时间` is within the rolling last 7 days | `点赞` descending, then `评分` descending |
-| `历史记录` | No filter; retains all historical rows | `点赞` descending, then `评分` descending |
+| `最近7天榜单` | Rolling last 7 days; both sources | `账号昵称`, `粉丝数`, `视频标题`, `来源`, `内容方向`, `点赞`, `评论`, `收藏`, `分享`, `评分`, `视频链接`, `视频文案` |
+| `对标账号视频` | `来源类型` contains `对标账号`; rolling last 30 days | `账号昵称`, `视频标题`, `内容方向`, `点赞`, `评论`, `收藏`, `分享`, `评分`, `视频链接`, `视频文案` |
+| `关键词爆款` | `来源类型` contains `关键词`; rolling last 7 days | `账号昵称`, `关键词`, `视频标题`, `内容方向`, `点赞`, `评论`, `收藏`, `分享`, `评分`, `视频链接`, `视频文案` |
+| `历史记录` | No filter; retains all historical rows | `账号昵称`, `粉丝数`, `视频标题`, `内容方向`, `来源`, `点赞`, `评论`, `收藏`, `分享`, `评分`, `视频链接`, `视频文案` |
+
+Every view sorts by `点赞` descending and then `评分` descending. Feishu can force the primary field to remain first; on an existing table the Skill preserves data instead of destructively rebuilding the table to change that platform-level constraint.
 
 The first view intentionally includes 7-day benchmark-account rows even though the dedicated account view covers 30 days. One video matched by multiple keywords or by both source types remains one row because the table business key is `平台 + 视频ID`.
 

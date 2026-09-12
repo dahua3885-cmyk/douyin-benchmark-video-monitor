@@ -1,3 +1,5 @@
-faster-whisper>=1.1,<2
-rapidocr-onnxruntime>=1.4,<2
-tzdata>=2024.1
+faster-whisper==1.2.1
+imageio-ffmpeg==0.6.0
+rapidocr-onnxruntime==1.4.4
+tzdata==2026.3
+yt-dlp==2026.8.19

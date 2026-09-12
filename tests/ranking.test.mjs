@@ -32,6 +32,9 @@ test("builds 30-day account and 7-day keyword rankings without duplicate videos"
   assert.equal(new Set(combined.map((row) => row["唯一键"])).size, 3);
   const shared = combined.find((row) => row["视频ID"] === "7000000000000000001");
   assert.equal(shared["来源类型"], "对标账号；关键词");
+  assert.equal(shared["来源"], "对标账号；关键词");
+  assert.equal(shared["关键词"], "测试关键词");
+  assert.equal(shared["内容方向"], "AI内容生产");
   assert.equal(shared["命中关键词"], "测试关键词");
   assert.equal(summary.status, "complete");
   assert.equal(summary.account_window_days, 30);

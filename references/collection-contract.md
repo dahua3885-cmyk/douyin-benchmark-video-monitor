@@ -25,6 +25,7 @@ This workflow uses only the Codex in-app browser. Browser identifiers and login 
     "account_url": "https://www.douyin.com/user/EXAMPLE",
     "follower_count": 80000,
     "title": "示例视频标题",
+    "content_direction": "AI内容生产",
     "copy": "示例发布文案",
     "transcript": "",
     "published_at": "2026-01-30T04:00:00.000Z",
@@ -34,7 +35,7 @@ This workflow uses only the Codex in-app browser. Browser identifiers and login 
     "shares": 110,
     "video_url": "https://www.douyin.com/video/7000000000000000001",
     "cover_url": "",
-    "media_url": "",
+    "media_url": "https://example.invalid/fresh-playable-video-url",
     "duration_ms": 60000,
     "is_pinned": false,
     "sources": ["benchmark_account:示例账号", "keyword:示例关键词"],
@@ -43,6 +44,8 @@ This workflow uses only the Codex in-app browser. Browser identifiers and login 
   }
 ]
 ```
+
+`content_direction` is a concise topic classification based on the visible title, publication copy, cover text, and, when available, speech semantics. Prefer a configured keyword-group name when it accurately describes the topic; use `待分类` only when evidence is insufficient. `media_url` should contain a fresh playable URL when the page exposes one. When it cannot be obtained, keep `video_url`; the transcription step will attempt public-page resolution instead.
 
 ## Summary artifact
 

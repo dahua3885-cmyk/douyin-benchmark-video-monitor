@@ -7,7 +7,6 @@ import urllib.request
 import wave
 from pathlib import Path
 
-
 CSV_HEADERS = [
     "视频标题", "账号昵称", "粉丝数", "来源类型", "命中关键词", "入榜关键词",
     "来源窗口", "发布时间", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案",
@@ -22,7 +21,7 @@ def hidden_flags():
     return getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
 
 
-def download(url, target):
+def download_direct(url, target):
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.douyin.com/"})
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
@@ -32,9 +31,42 @@ def download(url, target):
         return False
 
 
+def download_page(url, target):
+    from yt_dlp import YoutubeDL
+
+    options = {
+        "format": "best[ext=mp4]/best",
+        "outtmpl": str(target),
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "retries": 2,
+        "socket_timeout": 60,
+    }
+    try:
+        with YoutubeDL(options) as downloader:
+            result = downloader.download([url])
+        return result == 0 and target.exists() and target.stat().st_size > 0
+    except Exception:  # noqa: BLE001 - do not leak signed URLs or cookies into logs
+        return False
+
+
+def download_candidate(candidate, target):
+    media_url = clean(candidate.get("media_url"))
+    video_url = clean(candidate.get("video_url") or candidate.get("link"))
+    if media_url and download_direct(media_url, target):
+        return True, "media_url"
+    target.unlink(missing_ok=True)
+    if video_url and download_page(video_url, target):
+        return True, "video_page"
+    return False, "media_and_page_download_failed" if media_url and video_url else "missing_downloadable_video_source"
+
+
 def extract_audio(video_path, audio_path):
+    from imageio_ffmpeg import get_ffmpeg_exe
+
     process = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(video_path), "-vn", "-ac", "1", "-ar", "16000", str(audio_path)],
+        [get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y", "-i", str(video_path), "-vn", "-ac", "1", "-ar", "16000", str(audio_path)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         creationflags=hidden_flags(),
@@ -105,23 +137,20 @@ def main():
             reused += 1
         else:
             candidate = candidates.get(video_id, {})
-            media_url = candidate.get("media_url") or ""
             duration_ms = int(candidate.get("duration_ms") or row.get("视频时长") or 0)
             if duration_ms > max_seconds * 1000:
                 failures.append({"video_id": video_id, "reason": "video_too_long"})
                 transcripts[video_id] = ""
                 continue
-            if not media_url:
-                failures.append({"video_id": video_id, "reason": "missing_media_url"})
-                transcripts[video_id] = ""
-                continue
             video_path = video_dir / f"{video_id}.mp4"
             audio_path = audio_dir / f"{video_id}.wav"
             print(f"[{index}/{len(unique_rows)}] {video_id}", flush=True)
-            if not video_path.exists() and not download(media_url, video_path):
-                failures.append({"video_id": video_id, "reason": "download_failed"})
-                transcripts[video_id] = ""
-                continue
+            if not video_path.exists():
+                downloaded, download_method = download_candidate(candidate, video_path)
+                if not downloaded:
+                    failures.append({"video_id": video_id, "reason": download_method})
+                    transcripts[video_id] = ""
+                    continue
             if not audio_path.exists() and not extract_audio(video_path, audio_path):
                 failures.append({"video_id": video_id, "reason": "audio_extract_failed"})
                 transcripts[video_id] = ""

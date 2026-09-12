@@ -43,7 +43,7 @@ node scripts\ensure-feishu-views.mjs --config=config\project.local.json --dry-ru
 node scripts\ensure-feishu-views.mjs --config=config\project.local.json
 ```
 
-The script is idempotent. On a new Base it renames the lone default `表格`/`Grid` view to `最近7天榜单`, creates the other three views, and configures their filters and sort order. On later runs it reuses named views and refreshes the rolling date boundaries. `write-feishu.ps1` calls it automatically before records are written.
+The script is idempotent. It creates missing `来源`, `内容方向`, and `关键词` text fields. On a new Base it renames the lone default `表格`/`Grid` view to `最近7天榜单`, creates the other three views, and configures their filters, sort order, and view-specific visible-field order. On later runs it reuses named views and refreshes the rolling date boundaries. `write-feishu.ps1` calls it automatically before records are written.
 
 ## Command mode
 

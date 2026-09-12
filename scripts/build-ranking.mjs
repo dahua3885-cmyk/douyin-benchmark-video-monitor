@@ -37,6 +37,9 @@ const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 const number = (value) => Number(value || 0);
 const unique = (values) => [...new Set(values.map(clean).filter(Boolean))];
 const platform = config.project.platform;
+const keywordDirectionMap = new Map(config.keyword_groups.flatMap((group) =>
+  group.keywords.map((keyword) => [clean(keyword), clean(group.name)]),
+));
 
 function parseDate(value) {
   if (typeof value === "number" || /^\d{10}$/.test(String(value || ""))) return new Date(Number(value) * 1000);
@@ -80,6 +83,7 @@ function normalize(raw) {
     isPinned: raw.is_pinned === true,
     sources,
     matchedKeywords,
+    contentDirections: unique(clean(raw.content_direction || raw["内容方向"]).split(/[；;]/)),
     collectionStatus: clean(raw.collection_status || "success"),
   };
 }
@@ -95,6 +99,7 @@ function isKeywordSource(row) {
 function mergeRows(left, right) {
   left.sources = unique([...left.sources, ...right.sources]);
   left.matchedKeywords = unique([...left.matchedKeywords, ...right.matchedKeywords]);
+  left.contentDirections = unique([...left.contentDirections, ...right.contentDirections]);
   left.followerCount = Math.max(left.followerCount, right.followerCount);
   for (const field of ["likes", "comments", "collects", "shares", "durationMs"]) left[field] = Math.max(left[field], right[field]);
   if (right.publishCopy.length > left.publishCopy.length) { left.publishCopy = right.publishCopy; left.title = right.title; }
@@ -230,6 +235,9 @@ function makeOutput(row, includeAccount, includeKeyword) {
   const sourceTypes = [includeAccount ? "对标账号" : "", includeKeyword ? "关键词" : ""].filter(Boolean);
   const windows = [includeAccount ? "近30天账号" : "", includeKeyword ? "近7天关键词" : ""].filter(Boolean);
   const selectedKeywords = includeKeyword ? unique(selectedKeywordsById.get(row.videoId) || []) : [];
+  const contentDirections = row.contentDirections.length
+    ? row.contentDirections
+    : unique(row.matchedKeywords.map((keyword) => keywordDirectionMap.get(keyword)));
   const notes = [];
   const coverTitle = clean(ocrMap[row.videoId] || row.coverTitle || "待识别");
   if (coverTitle === "待识别") notes.push("封面OCR待补");
@@ -243,6 +251,9 @@ function makeOutput(row, includeAccount, includeKeyword) {
     "账号主页": row.accountUrl,
     "粉丝数": row.followerCount,
     "来源类型": sourceTypes.join("；"),
+    "来源": sourceTypes.join("；"),
+    "内容方向": contentDirections.join("；") || "待分类",
+    "关键词": (selectedKeywords.length ? selectedKeywords : row.matchedKeywords).join("；"),
     "命中关键词": row.matchedKeywords.join("；"),
     "入榜关键词": selectedKeywords.join("；"),
     "来源窗口": windows.join("；"),

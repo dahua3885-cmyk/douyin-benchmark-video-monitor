@@ -43,8 +43,11 @@ function listViews(baseToken, tableId) {
   return extractViews(runLark(["base", "+view-list", ...baseArgs(baseToken, tableId), "--limit", "200"]));
 }
 
-function requireFields(baseToken, tableId) {
-  const names = extractFieldNames(runLark(["base", "+field-list", ...baseArgs(baseToken, tableId), "--limit", "200"]));
+function listFieldNames(baseToken, tableId) {
+  return extractFieldNames(runLark(["base", "+field-list", ...baseArgs(baseToken, tableId), "--limit", "200"]));
+}
+
+function requireBaseFields(names) {
   const required = ["来源类型", "发布时间", "点赞", "评分"];
   const missing = required.filter((name) => !names.includes(name));
   if (missing.length) throw new Error(`视频数据表缺少视图所需字段: ${missing.join("、")}`);
@@ -63,13 +66,25 @@ function main() {
   const now = args.now ? new Date(args.now) : new Date();
   if (Number.isNaN(now.getTime())) throw new Error(`Invalid --now value: ${args.now}`);
 
-  requireFields(baseToken, tableId);
+  const initialFields = listFieldNames(baseToken, tableId);
+  requireBaseFields(initialFields);
+  const supplementalFields = ["来源", "内容方向", "关键词"];
+  const fieldOperations = supplementalFields
+    .filter((name) => !initialFields.includes(name))
+    .map((name) => ({ action: "create", name, type: "text" }));
   const initialViews = listViews(baseToken, tableId);
   const plan = buildViewPlan(initialViews, now, timeZone);
   if (args.dryRun) {
-    process.stdout.write(`${JSON.stringify({ status: "dry_run", existing_views: initialViews, ...plan }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ status: "dry_run", existing_fields: initialFields, field_operations: fieldOperations, existing_views: initialViews, ...plan }, null, 2)}\n`);
     return;
   }
+
+  for (const operation of fieldOperations) {
+    runLark(["base", "+field-create", ...baseArgs(baseToken, tableId), "--json", JSON.stringify({ type: operation.type, name: operation.name })]);
+  }
+  const finalFields = listFieldNames(baseToken, tableId);
+  const missingSupplemental = supplementalFields.filter((name) => !finalFields.includes(name));
+  if (missingSupplemental.length) throw new Error(`未能创建视图显示字段: ${missingSupplemental.join("、")}`);
 
   for (const operation of plan.operations) {
     if (operation.action === "rename") {
@@ -86,11 +101,13 @@ function main() {
     if (!actual) throw new Error(`Failed to resolve Feishu view after setup: ${desired.name}`);
     runLark(["base", "+view-set-filter", ...baseArgs(baseToken, tableId), "--view-id", actual.id, "--json", JSON.stringify(desired.filter)]);
     runLark(["base", "+view-set-sort", ...baseArgs(baseToken, tableId), "--view-id", actual.id, "--json", JSON.stringify(desired.sort)]);
+    runLark(["base", "+view-set-visible-fields", ...baseArgs(baseToken, tableId), "--view-id", actual.id, "--json", JSON.stringify({ visible_fields: desired.visibleFields })]);
   }
 
   process.stdout.write(`${JSON.stringify({
     status: "complete",
     views: plan.desired.map((view) => view.name),
+    fields_created: fieldOperations.map((operation) => operation.name),
     operations: plan.operations,
     refreshed_at: now.toISOString(),
     time_zone: timeZone,

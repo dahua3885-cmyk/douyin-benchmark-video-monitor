@@ -60,6 +60,7 @@ export function desiredViews(now, timeZone) {
       name: "最近7天榜单",
       filter: { logic: "and", conditions: [["发布时间", ">=", sevenDayCutoff]] },
       sort,
+      visibleFields: ["账号昵称", "粉丝数", "视频标题", "来源", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"],
     },
     {
       name: "对标账号视频",
@@ -68,6 +69,7 @@ export function desiredViews(now, timeZone) {
         conditions: [["来源类型", "intersects", ["对标账号"]], ["发布时间", ">=", thirtyDayCutoff]],
       },
       sort,
+      visibleFields: ["账号昵称", "视频标题", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"],
     },
     {
       name: "关键词爆款",
@@ -76,11 +78,13 @@ export function desiredViews(now, timeZone) {
         conditions: [["来源类型", "intersects", ["关键词"]], ["发布时间", ">=", sevenDayCutoff]],
       },
       sort,
+      visibleFields: ["账号昵称", "关键词", "视频标题", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"],
     },
     {
       name: "历史记录",
       filter: { conditions: [] },
       sort,
+      visibleFields: ["账号昵称", "粉丝数", "视频标题", "内容方向", "来源", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"],
     },
   ];
 }

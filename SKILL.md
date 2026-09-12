@@ -2,7 +2,7 @@
 name: douyin-benchmark-video-monitor
 description: Configure and run a private daily Douyin benchmark-video monitor from user-supplied account URLs and keywords. Use Codex's in-app browser to collect account videos sequentially, search keywords with bounded concurrency and risk fallback, rank 30-day account videos and 7-day keyword videos, and optionally write deduplicated results to the user's own Feishu Base.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # Douyin Benchmark Video Monitor
@@ -15,6 +15,7 @@ Keep each user's accounts, keywords, browser session, Feishu identifiers, creden
 2. Create or select the Douyin tab in Codex's in-app browser with `visible: true` for login. Navigate to the login QR screen and keep it visible until the user scans it. Confirm the logged-in identity, then reuse that in-app browser session. Never start Chrome, Edge, Playwright persistent profiles, or a second browser identity.
 3. If Feishu output or commands are enabled, read [references/feishu-setup.md](references/feishu-setup.md). Every Feishu verification URL must be shown unchanged as a clickable link and as a generated PNG QR code opened in Codex. Runtime writes and replies use bot identity. Do not ask for a notification recipient or group.
 4. Before collection, read [references/collection-contract.md](references/collection-contract.md). Its artifact schema and sequencing rules are mandatory.
+5. Before the first OCR or transcription run, execute `scripts/install-dependencies.ps1`. `run-monitor.ps1` does this automatically when the verified local runtime is absent. Do not ask the user to install Python packages, FFmpeg, yt-dlp, or the configured Whisper model one by one.
 
 ## Collection Order
 
@@ -60,6 +61,14 @@ Before the first Feishu write, preview and create the four required `视频数�
 - `历史记录`: all retained records without a date filter.
 
 These are four views of the same deduplicated `视频数据` table, not four separate tables. Never delete old rows merely because they leave a rolling view.
+
+Each view must use its exact field order from [references/feishu-schema.md](references/feishu-schema.md). The setup script creates the supplemental text fields `来源`, `内容方向`, and `关键词` when missing, then applies view-specific visible fields. Feishu may keep its primary field pinned first even when the requested visible-field order starts with `账号昵称`; do not rebuild or destructively migrate an existing table merely to override that platform constraint.
+
+## Transcription
+
+For every ranked video, prefer a fresh `media_url` captured from the in-app browser. If it is missing or expired, `transcribe-ranking.py` must try the public `视频链接` through yt-dlp, extract audio with the bundled `imageio-ffmpeg` runtime, and transcribe with faster-whisper. Run transcription before the Feishu write so `视频文案` contains the result.
+
+The repository ships installation and runtime-resolution scripts, not platform-specific binaries or model weights. On first run, the scripts automatically create `.venv`, install pinned dependency ranges, resolve FFmpeg, and download the configured Whisper model to the local cache. If both direct-media and public-page downloads fail, mark the run partial and write the exact stable failure reason to `transcription-summary.json` and `数据备注`; never silently present an empty transcript as success.
 
 ## Feishu Commands
 

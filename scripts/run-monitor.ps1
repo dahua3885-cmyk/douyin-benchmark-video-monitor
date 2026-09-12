@@ -26,6 +26,7 @@ if (Test-Path -LiteralPath $LockPath) { throw "A monitor run is already active: 
 New-Item -ItemType File -Path $LockPath -Force | Out-Null
 
 $Steps = [System.Collections.Generic.List[object]]::new()
+$RuntimePython = "python"
 function Add-Step([string]$Name, [string]$Status, [string]$Detail = "") {
   $Steps.Add([ordered]@{ name = $Name; status = $Status; detail = $Detail; at = (Get-Date).ToString("o") })
 }
@@ -70,12 +71,44 @@ try {
   Copy-Item -LiteralPath $SummaryPath -Destination $CollectionSummary -Force
   Add-Step "accept_codex_browser_collection" "success" "Validated Codex in-app browser artifacts"
 
+  if (-not $SkipEnrichment -and ($Config.enrichment.ocr_enabled -or $Config.enrichment.transcription_enabled)) {
+    $VenvPython = if ($IsLinux -or $IsMacOS) { Join-Path $SkillDir ".venv/bin/python" } else { Join-Path $SkillDir ".venv\Scripts\python.exe" }
+    $RuntimeMarker = Join-Path $SkillDir "work\runtime-ready.json"
+    $DependenciesMarker = Join-Path $SkillDir "work\runtime-dependencies-ready.json"
+    $NeedsWhisperModel = $Config.enrichment.transcription_enabled -eq $true
+    $RuntimeReady = $false
+    if ($NeedsWhisperModel -and (Test-Path -LiteralPath $RuntimeMarker)) {
+      try {
+        $RuntimeStatus = Get-Content -LiteralPath $RuntimeMarker -Raw -Encoding UTF8 | ConvertFrom-Json
+        $RuntimeReady = $RuntimeStatus.model_downloaded -eq $true -and [string]$RuntimeStatus.whisper_model -eq [string]$Config.enrichment.whisper_model
+      }
+      catch { $RuntimeReady = $false }
+    }
+    elseif (-not $NeedsWhisperModel) {
+      $RuntimeReady = (Test-Path -LiteralPath $DependenciesMarker) -or (Test-Path -LiteralPath $RuntimeMarker)
+    }
+    if (-not (Test-Path -LiteralPath $VenvPython) -or -not $RuntimeReady) {
+      Invoke-Required "install_dependencies" {
+        if ($NeedsWhisperModel) {
+          & (Join-Path $PSScriptRoot "install-dependencies.ps1") -ConfigPath $ConfigPath
+        }
+        else {
+          & (Join-Path $PSScriptRoot "install-dependencies.ps1") -ConfigPath $ConfigPath -SkipModelDownload
+        }
+      }
+    }
+    else {
+      Add-Step "install_dependencies" "success" "Reused local verified runtime"
+    }
+    $RuntimePython = $VenvPython
+  }
+
   $OcrMap = Join-Path $RunDir "cover-titles.json"
   if (-not $SkipEnrichment -and $Config.enrichment.ocr_enabled) {
     Invoke-Partial "ocr_covers" {
       $OcrArgs = @("--input", $Normalized, "--output", $OcrMap, "--cache-dir", (Join-Path $RunDir "cover-cache"), "--config", $ConfigPath)
       if ($Now) { $OcrArgs += @("--now", $Now) }
-      & python (Join-Path $PSScriptRoot "ocr-covers.py") @OcrArgs
+      & $RuntimePython (Join-Path $PSScriptRoot "ocr-covers.py") @OcrArgs
     }
   }
   else {
@@ -95,8 +128,9 @@ try {
 
   if (-not $SkipEnrichment -and $Config.enrichment.transcription_enabled) {
     Invoke-Partial "transcribe_ranking" {
-      & python (Join-Path $PSScriptRoot "transcribe-ranking.py") `
-        --candidates $Normalized --config $ConfigPath --output-dir $RunDir
+      & $RuntimePython (Join-Path $PSScriptRoot "transcribe-ranking.py") `
+        --candidates $Normalized --config $ConfigPath --output-dir $RunDir `
+        --cache-dir (Join-Path $OutputRoot "transcript-cache")
     }
   }
   else {

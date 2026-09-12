@@ -27,6 +27,10 @@ test("builds the four required Feishu views with independent 7-day and 30-day wi
     { field: "点赞", desc: true },
     { field: "评分", desc: true },
   ]);
+  assert.deepEqual(views[0].visibleFields, ["账号昵称", "粉丝数", "视频标题", "来源", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"]);
+  assert.deepEqual(views[1].visibleFields, ["账号昵称", "视频标题", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"]);
+  assert.deepEqual(views[2].visibleFields, ["账号昵称", "关键词", "视频标题", "内容方向", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"]);
+  assert.deepEqual(views[3].visibleFields, ["账号昵称", "粉丝数", "视频标题", "内容方向", "来源", "点赞", "评论", "收藏", "分享", "评分", "视频链接", "视频文案"]);
 });
 
 test("renames a lone default grid and creates the other required views", () => {
@@ -104,6 +108,7 @@ test("CLI dry-run reads Feishu metadata through the Windows lark-cli bridge", { 
     });
     const result = JSON.parse(stdout);
     assert.equal(result.status, "dry_run");
+    assert.deepEqual(result.field_operations.map((operation) => operation.name), ["来源", "内容方向", "关键词"]);
     assert.deepEqual(result.operations.map((operation) => operation.action), ["rename", "create", "create", "create"]);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
