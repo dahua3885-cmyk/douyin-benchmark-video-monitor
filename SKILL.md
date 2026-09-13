@@ -2,7 +2,7 @@
 name: douyin-benchmark-video-monitor
 description: Configure and run a private daily Douyin benchmark-video monitor from user-supplied account URLs and keywords. Use Codex's in-app browser to collect account videos sequentially, search keywords with bounded concurrency and risk fallback, rank 30-day account videos and 7-day keyword videos, and optionally write deduplicated results to the user's own Feishu Base.
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # Douyin Benchmark Video Monitor
@@ -68,7 +68,11 @@ Each view must use its exact field order from [references/feishu-schema.md](refe
 
 For every ranked video, prefer a fresh `media_url` captured from the in-app browser. If it is missing or expired, `transcribe-ranking.py` must try the public `视频链接` through yt-dlp, extract audio with the bundled `imageio-ffmpeg` runtime, and transcribe with faster-whisper. Run transcription before the Feishu write so `视频文案` contains the result.
 
+Normalize successful Chinese transcripts to Simplified Chinese locally before caching and writing them to Feishu.
+
 The repository ships installation and runtime-resolution scripts, not platform-specific binaries or model weights. On first run, the scripts automatically create `.venv`, install pinned dependency ranges, resolve FFmpeg, and download the configured Whisper model to the local cache. If both direct-media and public-page downloads fail, mark the run partial and write the exact stable failure reason to `transcription-summary.json` and `数据备注`; never silently present an empty transcript as success.
+
+When transcription is enabled and every ranked video fails transcription, stop before the Feishu write. A partially successful batch may be written with per-row failure notes, but an all-empty `视频文案` batch must never replace or create the daily Feishu result.
 
 ## Feishu Commands
 

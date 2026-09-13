@@ -12,6 +12,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 class DownloadCandidateTests(unittest.TestCase):
+    def test_normalizes_traditional_chinese_to_simplified(self):
+        self.assertEqual(MODULE.simplified_chinese("這是本地視頻轉寫測試"), "这是本地视频转写测试")
+
+    def test_formats_stable_transcription_failure_reason(self):
+        self.assertEqual(
+            MODULE.transcription_failure_note("media_and_page_download_failed"),
+            "视频转录失败：media_and_page_download_failed",
+        )
+
     def test_falls_back_to_video_page_when_media_url_is_missing(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "video.mp4"

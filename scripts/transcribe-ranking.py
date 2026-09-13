@@ -17,6 +17,16 @@ def clean(value):
     return " ".join(str(value or "").split())
 
 
+def simplified_chinese(value):
+    from opencc import OpenCC
+
+    return clean(OpenCC("t2s").convert(value))
+
+
+def transcription_failure_note(reason):
+    return f"视频转录失败：{clean(reason) or 'unknown'}"
+
+
 def hidden_flags():
     return getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
 
@@ -132,8 +142,11 @@ def main():
 
     for index, (video_id, row) in enumerate(unique_rows.items(), start=1):
         text_path = text_dir / f"{video_id}.txt"
-        transcript = clean(text_path.read_text(encoding="utf-8")) if text_path.exists() else ""
+        cached_transcript = clean(text_path.read_text(encoding="utf-8")) if text_path.exists() else ""
+        transcript = simplified_chinese(cached_transcript) if cached_transcript else ""
         if transcript:
+            if transcript != cached_transcript:
+                text_path.write_text(transcript, encoding="utf-8")
             reused += 1
         else:
             candidate = candidates.get(video_id, {})
@@ -163,7 +176,7 @@ def main():
                 from faster_whisper import WhisperModel
                 model = WhisperModel(enrichment.get("whisper_model", "base"), device=device, compute_type=compute_type)
             segments, _ = model.transcribe(str(audio_path), language="zh", vad_filter=True, beam_size=1)
-            transcript = clean(" ".join(segment.text for segment in segments))
+            transcript = simplified_chinese(" ".join(segment.text for segment in segments))
             if transcript:
                 text_path.write_text(transcript, encoding="utf-8")
                 transcribed += 1
@@ -171,14 +184,18 @@ def main():
                 failures.append({"video_id": video_id, "reason": "no_speech_detected"})
         transcripts[video_id] = transcript
 
+    failure_reasons = {item["video_id"]: item["reason"] for item in failures}
     for path, rows in rankings.items():
         for row in rows:
             video_id = str(row.get("视频ID") or "")
             transcript = transcripts.get(video_id, "")
             row["视频文案"] = transcript
-            notes = [item for item in clean(row.get("数据备注")).split("；") if item and item != "视频转录待补"]
+            notes = [
+                item for item in clean(row.get("数据备注")).split("；")
+                if item and item != "视频转录待补" and not item.startswith("视频转录失败：")
+            ]
             if not transcript:
-                notes.append("视频转录待补")
+                notes.append(transcription_failure_note(failure_reasons.get(video_id, "unknown")))
             row["数据备注"] = "；".join(dict.fromkeys(notes))
         path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
         if path.name != "ranking.json":

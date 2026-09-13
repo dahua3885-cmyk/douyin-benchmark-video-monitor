@@ -75,17 +75,27 @@ try {
     $VenvPython = if ($IsLinux -or $IsMacOS) { Join-Path $SkillDir ".venv/bin/python" } else { Join-Path $SkillDir ".venv\Scripts\python.exe" }
     $RuntimeMarker = Join-Path $SkillDir "work\runtime-ready.json"
     $DependenciesMarker = Join-Path $SkillDir "work\runtime-dependencies-ready.json"
+    $RequiredRuntimeHash = (Get-FileHash -LiteralPath (Join-Path $SkillDir "requirements.txt") -Algorithm SHA256).Hash.ToLowerInvariant()
     $NeedsWhisperModel = $Config.enrichment.transcription_enabled -eq $true
     $RuntimeReady = $false
     if ($NeedsWhisperModel -and (Test-Path -LiteralPath $RuntimeMarker)) {
       try {
         $RuntimeStatus = Get-Content -LiteralPath $RuntimeMarker -Raw -Encoding UTF8 | ConvertFrom-Json
-        $RuntimeReady = $RuntimeStatus.model_downloaded -eq $true -and [string]$RuntimeStatus.whisper_model -eq [string]$Config.enrichment.whisper_model
+        $RuntimeReady = $RuntimeStatus.model_downloaded -eq $true `
+          -and [string]$RuntimeStatus.whisper_model -eq [string]$Config.enrichment.whisper_model `
+          -and [string]$RuntimeStatus.requirements_sha256 -eq $RequiredRuntimeHash
       }
       catch { $RuntimeReady = $false }
     }
     elseif (-not $NeedsWhisperModel) {
-      $RuntimeReady = (Test-Path -LiteralPath $DependenciesMarker) -or (Test-Path -LiteralPath $RuntimeMarker)
+      foreach ($CandidateMarker in @($DependenciesMarker, $RuntimeMarker)) {
+        if (-not (Test-Path -LiteralPath $CandidateMarker)) { continue }
+        try {
+          $RuntimeStatus = Get-Content -LiteralPath $CandidateMarker -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ([string]$RuntimeStatus.requirements_sha256 -eq $RequiredRuntimeHash) { $RuntimeReady = $true; break }
+        }
+        catch { $RuntimeReady = $false }
+      }
     }
     if (-not (Test-Path -LiteralPath $VenvPython) -or -not $RuntimeReady) {
       Invoke-Required "install_dependencies" {
@@ -131,6 +141,9 @@ try {
       & $RuntimePython (Join-Path $PSScriptRoot "transcribe-ranking.py") `
         --candidates $Normalized --config $ConfigPath --output-dir $RunDir `
         --cache-dir (Join-Path $OutputRoot "transcript-cache")
+    }
+    Invoke-Required "validate_transcription_output" {
+      & node (Join-Path $PSScriptRoot "validate-transcription-summary.mjs") (Join-Path $RunDir "transcription-summary.json")
     }
   }
   else {

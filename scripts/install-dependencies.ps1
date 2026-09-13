@@ -35,12 +35,15 @@ $PrepareArgs = @((Join-Path $PSScriptRoot "prepare-runtime.py"), "--model", $Mod
 if ($SkipModelDownload) { $PrepareArgs += "--skip-model-download" }
 $RuntimeJson = & $VenvPython @PrepareArgs
 if ($LASTEXITCODE -ne 0) { throw "Runtime verification or model download failed" }
+$RuntimeData = ($RuntimeJson -join "`n") | ConvertFrom-Json
+$RuntimeData | Add-Member -NotePropertyName "requirements_sha256" -NotePropertyValue ((Get-FileHash -LiteralPath (Join-Path $SkillDir "requirements.txt") -Algorithm SHA256).Hash.ToLowerInvariant()) -Force
+$RuntimeJson = $RuntimeData | ConvertTo-Json -Depth 10
 
 New-Item -ItemType Directory -Path $MarkerDir -Force | Out-Null
 if ($SkipModelDownload) {
-  [System.IO.File]::WriteAllText($DependenciesMarkerPath, ($RuntimeJson -join "`n"), [System.Text.UTF8Encoding]::new($false))
+  [System.IO.File]::WriteAllText($DependenciesMarkerPath, $RuntimeJson, [System.Text.UTF8Encoding]::new($false))
 }
 else {
-  [System.IO.File]::WriteAllText($MarkerPath, ($RuntimeJson -join "`n"), [System.Text.UTF8Encoding]::new($false))
+  [System.IO.File]::WriteAllText($MarkerPath, $RuntimeJson, [System.Text.UTF8Encoding]::new($false))
 }
-Write-Output ($RuntimeJson -join "`n")
+Write-Output $RuntimeJson

@@ -1,6 +1,6 @@
 # Douyin Benchmark Video Monitor
 
-A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, transcribing ranked videos, and writing deduplicated results to the user's own Feishu Base. Version 0.3.0 gives each Feishu view its own field order and automatically installs the local enrichment runtime.
+A Codex Skill for collecting user-supplied Douyin benchmark accounts and keywords in Codex's in-app browser, ranking account videos over 30 days and keyword videos over 7 days, transcribing ranked videos, and writing deduplicated results to the user's own Feishu Base. Version 0.3.1 gives each Feishu view its own field order, automatically installs the local enrichment runtime, and normalizes Chinese transcripts to Simplified Chinese.
 
 The repository contains no production account list, keyword strategy, browser session, Feishu resource identifier, credential, or collected platform data.
 
